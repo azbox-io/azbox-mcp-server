@@ -31,7 +31,9 @@ const KEY_PREFIX = "azb_live_";
 
 /**
  * Las claves nuevas van en una cabecera; las credenciales del esquema antiguo,
- * en la query, que es donde la API las espera.
+ * en `?api_key=`, que es donde la API las espera — es el parámetro que usa la
+ * librería de Flutter publicada. `token` era el de una versión anterior y hoy
+ * se rechaza.
  *
  * Un secreto en la URL acaba en los logs del servidor, en los del proxy y en
  * el historial de cualquier herramienta por medio. Es una razón de sobra para
@@ -101,7 +103,7 @@ export class AzboxClient {
     const url = new URL(path, this.baseUrl);
     const headers: Record<string, string> = { accept: "application/json" };
     if (isApiKey(this.token)) headers["x-api-key"] = this.token;
-    else url.searchParams.set("token", this.token);
+    else url.searchParams.set("api_key", this.token);
 
     for (const [key, value] of Object.entries(params)) {
       if (value !== undefined && value !== "") url.searchParams.set(key, value);

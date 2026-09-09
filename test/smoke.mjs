@@ -35,7 +35,10 @@ const api = createServer((req, res) => {
   };
 
   const cabecera = req.headers["x-api-key"];
-  const query = u.searchParams.get("token");
+  // `api_key` es el parámetro que acepta la API; `token` era el de una versión
+  // anterior y hoy se rechaza, así que no debe aparecer nunca.
+  const query = u.searchParams.get("api_key");
+  if (u.searchParams.get("token")) return json(400, { error: "token está obsoleto" });
   if (cabecera === CLAVE) recibido.porCabecera++;
   else if (query) recibido.porQuery++;
   else return json(401, { error: "Access denied" });
@@ -223,7 +226,7 @@ viejo.stdin.write(
   JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "azbox_list_projects", arguments: {} } }) + "\n",
 );
 await new Promise((r) => viejo.stdout.once("data", r));
-ok(recibido.porQuery > antes, "una credencial antigua sigue yendo por ?token=");
+ok(recibido.porQuery > antes, "una credencial antigua va por ?api_key=");
 viejo.kill();
 
 api.close();
