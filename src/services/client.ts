@@ -26,6 +26,21 @@ export interface Credentials {
   baseUrl?: string;
 }
 
+/** Prefijo de las claves de API de AZbox. */
+const KEY_PREFIX = "azb_live_";
+
+/**
+ * Las claves nuevas van en una cabecera; las credenciales del esquema antiguo,
+ * en la query, que es donde la API las espera.
+ *
+ * Un secreto en la URL acaba en los logs del servidor, en los del proxy y en
+ * el historial de cualquier herramienta por medio. Es una razón de sobra para
+ * que las claves nuevas no pasen por ahí.
+ */
+export function isApiKey(credential: string): boolean {
+  return credential.startsWith(KEY_PREFIX) && credential.length >= KEY_PREFIX.length + 20;
+}
+
 /** Una keyword tal y como la devuelve la API. */
 export interface RawKeyword {
   id: string;
@@ -84,16 +99,17 @@ export class AzboxClient {
     params: Record<string, string | undefined> = {},
   ): Promise<T | null> {
     const url = new URL(path, this.baseUrl);
-    url.searchParams.set("token", this.token);
+    const headers: Record<string, string> = { accept: "application/json" };
+    if (isApiKey(this.token)) headers["x-api-key"] = this.token;
+    else url.searchParams.set("token", this.token);
+
     for (const [key, value] of Object.entries(params)) {
       if (value !== undefined && value !== "") url.searchParams.set(key, value);
     }
 
     let response: Response;
     try {
-      response = await this.fetchImpl(url, {
-        headers: { accept: "application/json" },
-      });
+      response = await this.fetchImpl(url, { headers });
     } catch (cause) {
       throw new AzboxError(
         `No se pudo conectar con ${this.baseUrl}: ${(cause as Error).message}`,
@@ -115,8 +131,18 @@ export class AzboxClient {
 
     if (response.status === 401) {
       throw new AzboxError(
-        "La API rechazó la credencial. Revisa AZBOX_TOKEN en la configuración del servidor.",
+        "La API rechazó la credencial. Revisa AZBOX_TOKEN en la configuración del " +
+          "servidor: debe ser una clave de API del panel de AZbox (empieza por " +
+          `${KEY_PREFIX}). Si estás usando el identificador de usuario del esquema ` +
+          "antiguo, puede que ya no se acepte.",
         { status: 401, detail: await readDetail(response) },
+      );
+    }
+
+    if (response.status === 403) {
+      throw new AzboxError(
+        "La clave de API no tiene permiso para esto, o está atada a otro proyecto.",
+        { status: 403, detail: await readDetail(response) },
       );
     }
 

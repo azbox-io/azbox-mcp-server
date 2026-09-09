@@ -41,6 +41,14 @@ In `~/.cursor/mcp.json`:
 The API key comes from the AZbox dashboard. `AZBOX_API_KEY` also works, and
 `AZBOX_BASE_URL` points the server at a different API host.
 
+A key issued by the dashboard starts with `azb_live_` and is sent in the
+`x-api-key` header, so it never reaches a server or proxy log. Keys can be
+revoked and can be scoped to a single project — worth doing here, since an
+agent only ever needs to read the project it is working on. Older credentials
+(the account identifier earlier AZbox libraries used) still work and are sent
+the way that API expects, but they cannot be revoked and they open the whole
+account. Replace them.
+
 ## Tools
 
 All six are read-only. Nothing this server does can change your project.

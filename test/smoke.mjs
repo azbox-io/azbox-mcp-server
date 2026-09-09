@@ -20,13 +20,26 @@ const KEYWORDS = {
   FR: [],
 };
 
+/** Una clave con la forma de las de verdad, para comprobar cómo se envía. */
+const CLAVE = "azb_live_" + "K".repeat(32);
+const LEGACY = "uid-del-esquema-antiguo";
+
+/** Cómo llegó la credencial en cada petición, y si el secreto acabó en la URL. */
+const recibido = { porCabecera: 0, porQuery: 0, secretoEnUrl: 0 };
+
 const api = createServer((req, res) => {
   const u = new URL(req.url, "http://x");
   const json = (code, body) => {
     res.writeHead(code, { "content-type": "application/json" });
     res.end(JSON.stringify(body));
   };
-  if (!u.searchParams.get("token")) return json(401, { error: "Access denied" });
+
+  const cabecera = req.headers["x-api-key"];
+  const query = u.searchParams.get("token");
+  if (cabecera === CLAVE) recibido.porCabecera++;
+  else if (query) recibido.porQuery++;
+  else return json(401, { error: "Access denied" });
+  if (req.url.includes(CLAVE)) recibido.secretoEnUrl++;
 
   const m = u.pathname.match(/^\/v1\/projects\/?([^/]*)\/?(categories|keywords)?$/);
   if (!m) return json(404, { detail: "not found" });
@@ -51,7 +64,7 @@ await new Promise((r) => api.listen(4799, r));
 
 const child = spawn("node", ["dist/index.js"], {
   cwd: new URL("..", import.meta.url).pathname,
-  env: { ...process.env, AZBOX_TOKEN: "tok", AZBOX_BASE_URL: "http://localhost:4799" },
+  env: { ...process.env, AZBOX_TOKEN: CLAVE, AZBOX_BASE_URL: "http://localhost:4799" },
   stdio: ["pipe", "pipe", "pipe"],
 });
 
@@ -182,7 +195,37 @@ ok(/azbox_get_project/.test(JSON.stringify(idiomaMalo.result?.content ?? "")), "
 
 ok(stderr === "", `stderr limpio${stderr ? `: ${stderr.slice(0, 200)}` : ""}`);
 
+// Una clave de API viaja en la cabecera y nunca en la URL: un secreto en la
+// query acaba en los logs del servidor y en los de cualquier proxy por medio.
+ok(recibido.porCabecera > 0, `la clave viaja en x-api-key (${recibido.porCabecera} peticiones)`);
+ok(recibido.porQuery === 0, "ninguna petición mandó la clave en la query");
+ok(recibido.secretoEnUrl === 0, "el secreto no aparece en ninguna URL");
+
 child.kill();
+
+// Y una credencial del esquema antiguo sigue yendo por la query, que es donde
+// la API la espera mientras dure la convivencia.
+const viejo = spawn("node", ["dist/index.js"], {
+  cwd: new URL("..", import.meta.url).pathname,
+  env: { ...process.env, AZBOX_TOKEN: LEGACY, AZBOX_BASE_URL: "http://localhost:4799" },
+  stdio: ["pipe", "pipe", "pipe"],
+});
+const antes = recibido.porQuery;
+viejo.stdin.write(
+  JSON.stringify({
+    jsonrpc: "2.0", id: 1, method: "initialize",
+    params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "smoke", version: "0" } },
+  }) + "\n",
+);
+await new Promise((r) => viejo.stdout.once("data", r));
+viejo.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) + "\n");
+viejo.stdin.write(
+  JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "azbox_list_projects", arguments: {} } }) + "\n",
+);
+await new Promise((r) => viejo.stdout.once("data", r));
+ok(recibido.porQuery > antes, "una credencial antigua sigue yendo por ?token=");
+viejo.kill();
+
 api.close();
 console.log(`\n  ${fallos.length === 0 ? "TODO OK" : `${fallos.length} FALLO(S)`}`);
 process.exit(fallos.length === 0 ? 0 : 1);
