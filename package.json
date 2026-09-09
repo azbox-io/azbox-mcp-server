@@ -1,0 +1,42 @@
+{
+  "name": "azbox-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for AZbox: read a project's translations from Claude Code, Cursor and other MCP clients",
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "azbox",
+    "i18n",
+    "l10n",
+    "translations"
+  ],
+  "license": "MIT",
+  "author": "Ricardo <ricardocaste@gmail.com>",
+  "homepage": "https://azbox.io/docs/",
+  "type": "module",
+  "bin": {
+    "azbox-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "test": "npm run build && node test/smoke.mjs",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "typescript": "^7.0.2"
+  }
+}
