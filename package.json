@@ -12,7 +12,9 @@
   ],
   "license": "MIT",
   "author": "Ricardo <ricardocaste@gmail.com>",
-  "homepage": "https://azbox.io/docs/",
+  "homepage": "https://azbox.io/docs/api/mcp/",
+  "repository": { "type": "git", "url": "git+https://github.com/azbox-io/azbox-mcp-server.git" },
+  "bugs": { "url": "https://github.com/azbox-io/azbox-mcp-server/issues" },
   "type": "module",
   "bin": {
     "azbox-mcp-server": "dist/index.js"
