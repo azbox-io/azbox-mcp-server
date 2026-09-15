@@ -196,6 +196,12 @@ const idiomaMalo = await call("tools/call", {
 ok(idiomaMalo.result?.isError === true, "idioma inexistente se marca como error");
 ok(/azbox_get_project/.test(JSON.stringify(idiomaMalo.result?.content ?? "")), "y dice dónde mirar los idiomas");
 
+const minusculas = await call("tools/call", {
+  name: "azbox_list_keywords",
+  arguments: { project_id: "p-uno", language: "es", response_format: "json" },
+});
+ok(minusculas.result?.structuredContent?.total_count === 5, "el idioma en minúsculas funciona (se pide en mayúsculas)");
+
 ok(stderr === "", `stderr limpio${stderr ? `: ${stderr.slice(0, 200)}` : ""}`);
 
 // Una clave de API viaja en la cabecera y nunca en la URL: un secreto en la

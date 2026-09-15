@@ -1,5 +1,5 @@
 export const SERVER_NAME = "azbox-mcp-server";
-export const SERVER_VERSION = "0.1.0";
+export const SERVER_VERSION = "0.1.1";
 
 export const DEFAULT_BASE_URL = "https://api.azbox.io";
 

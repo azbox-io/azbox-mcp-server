@@ -193,7 +193,9 @@ export class AzboxClient {
     return (
       (await this.get<RawKeyword[]>(
         `/v1/projects/${encodeURIComponent(projectId)}/keywords`,
-        { language, afterUpdatedAtStr: afterUpdatedAt },
+        // La API compara el código tal cual y los de un proyecto están en
+        // mayúsculas: con "es" devolvería las claves sin ninguna traducción.
+        { language: language.toUpperCase(), afterUpdatedAtStr: afterUpdatedAt },
       )) ?? []
     );
   }
